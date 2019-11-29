@@ -6,12 +6,9 @@ from sklearn import manifold
 import matplotlib.pyplot as plt
 
 dataset = scipy.io.loadmat('./data/SHOCK.mat')
-cells = dataset["G"][0]
 
-X = []
-for cell in cells:
-    X.append(cell.base)
-
+adjacency_matrices = [cell['am'] for cell in dataset["G"][0] ]
+labels = [label[0] for label in dataset["labels"]]
 
 embeddings = manifold.locally_linear_embedding(dataset, n_neighbors=10, n_components=2)
 
