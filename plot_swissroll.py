@@ -24,7 +24,12 @@ Axes3D
 from sklearn import manifold, datasets
 X, color = datasets.samples_generator.make_swiss_roll(n_samples=1500)
 
-print("Computing LLE embedding")
+print("First 5 elements of X:\n")
+
+for i in range(5):
+    print (X[i])
+
+print("\nComputing LLE embedding\n")
 X_r, err = manifold.locally_linear_embedding(X, n_neighbors=12,
                                              n_components=2)
 print("Done. Reconstruction error: %g" % err)
