@@ -20,9 +20,42 @@ from utils import compute_distance_matrix
 
 X, y = load_shock_dataset()
 
-randomWalkKernel = GraphKernel(kernel={"name": "random_walk", "with_labels": False}, normalize=True)
-graphletKernel = GraphKernel(kernel={"name": "graphlet_sampling", "with_labels": False}, normalize=True)
+## KFOLD
+idx = np.random.permutation(len(X))
+X, y = X[idx], y[idx]
+
+spk = GraphKernel(kernel={"name": "shortest_path", "with_labels": False}, normalize=True)
+
+from sklearn.model_selection import KFold
+kf = KFold(n_splits=2) # n_splits is 2 for testing reasons
+
+scores = []
+for train_index, test_index in kf.split(X):
+
+    X_train, X_test = X[train_index], X[test_index]
+    y_train, y_test = y[train_index], y[test_index]
+
+    K_train = spk.fit_transform(X_train)
+    K_test = spk.transform(X_test)
+
+    clf = svm.SVC(kernel='linear', C=1)
+    clf.fit(K_train, y_train)
+    y_pred = clf.predict(K_test)
+
+    acc = accuracy_score(y_test, y_pred)
+    scores.append(acc)
+
+mean = 0
+print(scores)
+for x in scores:
+    mean += x
+mean /= len(scores)
+print("Accuracy: %0.2f" % (mean) )#, scores.std() * 2))
+
+##END KFOLD
+
 shortestPathKernel = GraphKernel(kernel={"name": "shortest_path", "with_labels": False}, normalize=True)
+
 
 # Calculate the kernel matrix.
 K = shortestPathKernel.fit_transform(X)
