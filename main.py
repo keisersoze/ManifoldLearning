@@ -48,21 +48,21 @@ for train_index, test_index in kf.split(X):
     D_test = compute_distance_matrix(K_test)
 
     # Initialize Isomap embedding object, embed train and test data
-    embedding = manifold.Isomap(n_neighbors=5, n_components=10, metric="precomputed")
+    embedding = manifold.Isomap(n_neighbors=20, n_components=60, metric="precomputed")
     E_train = embedding.fit_transform(D_train)
-    E_test = embedding.fit(D_test) # QUESTO NON VA
-'''
+    E_test = embedding.transform(D_test)
+
     # initialize second svm (not necessary? search documentation)
-    clf2 = svm.SVC(kernel='precomputed', C=420)
-    clf2.fit(D_train, y_train)
+    clf2 = svm.SVC(kernel='linear', C=420)
+    clf2.fit(E_train, y_train)
 
     # Predict and test.
-    y_pred = clf2.predict(D_test)
+    y_pred = clf2.predict(E_test)
 
     # Calculate accuracy of classification.
     acc = accuracy_score(y_test, y_pred)
     scores2.append(acc)
-'''
+
 no_manifold_accuracy = np.mean(scores)
 with_manifold_accuracy = np.mean(scores2)
 no_manifold_sd = np.std(scores)
