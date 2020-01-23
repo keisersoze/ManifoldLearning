@@ -9,6 +9,7 @@ from datasets_utils import load_shock_dataset, load_ppi_dataset
 from utils import compute_distance_matrix
 from scipy import stats
 
+#X, y = load_shock_dataset()
 X, y = load_ppi_dataset()
 
 # Shuffle data
@@ -16,8 +17,12 @@ idx = np.random.RandomState(seed=42).permutation(len(X))
 X, y = X[idx], y[idx]
 
 # Split indexes according to Kfold with k = 10
-k = 10
+k = 5
 kf = KFold(n_splits=k)
+# Hyperparameters
+knn = 20
+d = 30
+Csvm = 100
 
 # initialize scores lists
 scores = []
@@ -34,7 +39,7 @@ for train_index, test_index in kf.split(X):
     K_test = kernel.transform(X_test)
 
     # Initialise an SVM and fit.
-    clf = svm.SVC(kernel='precomputed', C=4)
+    clf = svm.SVC(kernel='precomputed', C=Csvm)
     clf.fit(K_train, y_train)
 
     # Predict and test.
@@ -49,12 +54,12 @@ for train_index, test_index in kf.split(X):
     D_test = compute_distance_matrix(K_test)
 
     # Initialize Isomap embedding object, embed train and test data
-    embedding = manifold.Isomap(n_neighbors=10, n_components=10, metric="precomputed")
+    embedding = manifold.Isomap(n_neighbors=knn, n_components=d, metric="precomputed")
     E_train = embedding.fit_transform(D_train)
     E_test = embedding.transform(D_test)
 
     # initialize second svm (not necessary? search documentation)
-    clf2 = svm.SVC(kernel='linear', C=4)
+    clf2 = svm.SVC(kernel='linear', C=Csvm)
     clf2.fit(E_train, y_train)
 
     # Predict and test.
@@ -75,9 +80,16 @@ with_manifold_accuracy = np.mean(scores2)
 no_manifold_se = stats.sem(scores)
 with_manifold_se = stats.sem(scores2)
 
-print("Accuracy of K-Fold non-embedded classification: %0.3f +- %0.2f" % (
-    no_manifold_accuracy, no_manifold_se))
-print("Accuracy of K-Fold embedded classification: %0.3f +-  %0.2f" % (
-    with_manifold_accuracy, with_manifold_se))
+print("Accuracy of K-Fold non-embedded classification: %0.3f, SE= +/- %0.3f" % (no_manifold_accuracy, no_manifold_se) )# , scores.std() * 2)) # should calculate std for scores
+print("Accuracy of K-Fold embedded classification: %0.3f , SE= +/- %0.3f" % (with_manifold_accuracy, with_manifold_se) )
+print("knn = ", knn, "d = ",d, "Csvm = ", Csvm)
+#print("Accuracy:", str(round(cross_validation_accuracy*100, 2)), "%")
 
-# print("Accuracy:", str(round(cross_validation_accuracy*100, 2)), "%")
+# PPI Results:
+# Accuracy of K-Fold non-embedded classification: 0.674, SE= +/- 0.050
+# Accuracy of K-Fold embedded classification: 0.660 , SE= +/- 0.049
+
+# SHOCK Results:
+#Accuracy of K-Fold non-embedded classification: 0.407, SE= +/- 0.034
+#Accuracy of K-Fold embedded classification: 0.433 , SE= +/- 0.023
+#knn =  25 d =  40 Csvm =  100
