@@ -1,13 +1,15 @@
 import numpy as np
+import scipy
 from grakel import GraphKernel
 from sklearn import svm
 from sklearn.metrics import accuracy_score
 from sklearn.model_selection import KFold
 from sklearn import manifold
-from datasets_utils import load_shock_dataset
+from datasets_utils import load_shock_dataset, load_ppi_dataset
 from utils import compute_distance_matrix
+from scipy import stats
 
-X, y = load_shock_dataset()
+X, y = load_ppi_dataset()
 
 # Shuffle data
 idx = np.random.RandomState(seed=42).permutation(len(X))
@@ -21,7 +23,6 @@ kf = KFold(n_splits=k)
 scores = []
 scores2 = []
 for train_index, test_index in kf.split(X):
-
     kernel = GraphKernel(kernel={"name": "shortest_path", "with_labels": False}, normalize=True)
 
     # split train and test of K-fold
@@ -33,7 +34,7 @@ for train_index, test_index in kf.split(X):
     K_test = kernel.transform(X_test)
 
     # Initialise an SVM and fit.
-    clf = svm.SVC(kernel='precomputed', C=420)
+    clf = svm.SVC(kernel='precomputed', C=4)
     clf.fit(K_train, y_train)
 
     # Predict and test.
@@ -48,12 +49,12 @@ for train_index, test_index in kf.split(X):
     D_test = compute_distance_matrix(K_test)
 
     # Initialize Isomap embedding object, embed train and test data
-    embedding = manifold.Isomap(n_neighbors=20, n_components=60, metric="precomputed")
+    embedding = manifold.Isomap(n_neighbors=10, n_components=10, metric="precomputed")
     E_train = embedding.fit_transform(D_train)
     E_test = embedding.transform(D_test)
 
     # initialize second svm (not necessary? search documentation)
-    clf2 = svm.SVC(kernel='linear', C=420)
+    clf2 = svm.SVC(kernel='linear', C=4)
     clf2.fit(E_train, y_train)
 
     # Predict and test.
@@ -63,14 +64,20 @@ for train_index, test_index in kf.split(X):
     acc = accuracy_score(y_test, y_pred)
     scores2.append(acc)
 
+for i, _ in enumerate(scores):
+    scores[i] = scores[i] * 100
+
+for i, _ in enumerate(scores2):
+    scores2[i] = scores2[i] * 100
+
 no_manifold_accuracy = np.mean(scores)
 with_manifold_accuracy = np.mean(scores2)
-no_manifold_sd = np.std(scores)
-with_manifold_sd = np.std(scores2)
+no_manifold_se = stats.sem(scores)
+with_manifold_se = stats.sem(scores2)
 
-print("Accuracy of K-Fold non-embedded classification: %0.3f" % (no_manifold_accuracy) )# , scores.std() * 2)) # should calculate std for scores
-print("Accuracy of K-Fold embedded classification: %0.3f" % (with_manifold_accuracy) )
+print("Accuracy of K-Fold non-embedded classification: %0.3f +- %0.2f" % (
+    no_manifold_accuracy, no_manifold_se))
+print("Accuracy of K-Fold embedded classification: %0.3f +-  %0.2f" % (
+    with_manifold_accuracy, with_manifold_se))
 
-#print("Accuracy:", str(round(cross_validation_accuracy*100, 2)), "%")
-
-
+# print("Accuracy:", str(round(cross_validation_accuracy*100, 2)), "%")
