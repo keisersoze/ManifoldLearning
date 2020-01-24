@@ -8,6 +8,8 @@ from datasets_utils import load_shock_dataset
 from datasets_utils import load_ppi_dataset
 from utils import compute_distance_matrix
 from scipy import stats
+import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import axes3d, Axes3D
 
 #X, y = load_shock_dataset()
 X, y = load_ppi_dataset()
@@ -73,6 +75,7 @@ def spk_isomap(X,y, k, KNNstart, KNNend, Dstart, Dend, svmC):
                 scores.append(accuracy_score(y_test, y_pred))
 
             Z[d][knn] = np.mean(scores)
+            print("value for d = ",d," and knn = ",knn,", is ", Z[d][knn])
             print("{0:.2%} done".format((Drange*knn+d+1.0)/(Drange*KNNrange)))
             # print("{0:.2%} done".format((D*k+d + 1.0)/(D*KNN) ))
     for z in Z:
