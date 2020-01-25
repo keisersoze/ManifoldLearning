@@ -14,7 +14,7 @@ from matplotlib import cm
 from random import random
 
 
-def cross_validation_with_and_without_manifold(X, y, n_neighbors, n_components, k):
+def cross_validation_with_and_without_manifold(X, y, n_neighbors, n_components, k, C):
     # Split indexes according to Kfold with k = 10
     kf = KFold(n_splits=k)
 
@@ -33,7 +33,7 @@ def cross_validation_with_and_without_manifold(X, y, n_neighbors, n_components, 
         K_test = kernel.transform(X_test)
 
         # Initialise an SVM and fit.
-        clf = svm.SVC(kernel='precomputed', C=4)
+        clf = svm.SVC(kernel='precomputed', C=C)
         clf.fit(K_train, y_train)
 
         # Predict and test.
@@ -53,7 +53,7 @@ def cross_validation_with_and_without_manifold(X, y, n_neighbors, n_components, 
         E_test = embedding.transform(D_test)
 
         # initialize second svm (not necessary? search documentation)
-        clf2 = svm.SVC(kernel='linear', C=4)
+        clf2 = svm.SVC(kernel='linear', C=C)
         clf2.fit(E_train, y_train)
 
         # Predict and test.
@@ -73,50 +73,58 @@ def cross_validation_with_and_without_manifold(X, y, n_neighbors, n_components, 
 X, y = load_shock_dataset()
 
 # Shuffle data
-idx = np.random.RandomState(seed=45).permutation(len(X))
+idx = np.random.RandomState(seed=42).permutation(len(X))
 X, y = X[idx], y[idx]
 
 min_dim = 5
-max_dim = 35
+max_dim = 25
 
-min_neighbors = 5
-max_neighbors = 20
+min_neighbors = 2
+max_neighbors = 50
 
 n_components_array = np.arange(min_dim, max_dim + 1, 1)
 n_neighbors_array = np.arange(min_neighbors, max_neighbors + 1, 1)
 accuracy_matrix = np.zeros((len(n_neighbors_array), len(n_components_array)))
 
-for i, n_neighbors in enumerate(n_neighbors_array):
-    for j, n_components in enumerate(n_components_array):
+best_conf = {"accuracy": 0}
+for j, n_components in enumerate(n_components_array):
+    for i, n_neighbors in enumerate(n_neighbors_array):
         scores, scores2 = cross_validation_with_and_without_manifold(X, y, n_neighbors=n_neighbors,
-                                                                     n_components=n_components, k=2)
+                                                                     n_components=n_components, k=10, C=40)
         no_manifold_accuracy = np.mean(scores)
         with_manifold_accuracy = np.mean(scores2)
         no_manifold_se = stats.sem(scores)
         with_manifold_se = stats.sem(scores2)
         accuracy_matrix[i, j] = with_manifold_accuracy
+        if with_manifold_accuracy > best_conf["accuracy"]:
+            best_conf["accuracy"] = with_manifold_accuracy
+            best_conf["d"] = n_components
+            best_conf["k"] = n_neighbors
+            best_conf["variance"] = np.var(scores2, ddof=1)
 
-X2, Y2 = np.meshgrid(n_components_array, n_neighbors_array)
+n_components_grid, n_neighbors_grid = np.meshgrid(n_components_array, n_neighbors_array)
 
 fig = plt.figure(figsize=(12, 6))
 ax = fig.add_subplot(111, projection='3d')
 
 mycmap = cm.coolwarm
 
-surf = ax.plot_surface(X2, Y2, accuracy_matrix, rstride=1, cstride=1, alpha=0.6, cmap=mycmap)
-cset = ax.contourf(X2, Y2, accuracy_matrix, zdir='z', offset=np.min(accuracy_matrix) - 31, cmap=mycmap)
+surf = ax.plot_surface(n_neighbors_grid, n_components_grid, accuracy_matrix, rstride=1, cstride=1, alpha=0.6,
+                       cmap=mycmap)
+cset = ax.contourf(n_neighbors_grid, n_components_grid, accuracy_matrix, zdir='z', offset=np.min(accuracy_matrix) - 15,
+                   cmap=mycmap)
 
 fig.colorbar(surf, ax=ax, shrink=0.5, aspect=5)
 
-ax.set_xlabel('dimensions')
-ax.set_xlim(min_dim, max_dim )
-ax.set_ylabel('#neighbors')
-ax.set_ylim(min_neighbors, max_neighbors)
-ax.set_zlabel('accuracy %')
-ax.set_zlim(np.min(accuracy_matrix) - 31, np.max(accuracy_matrix))
-ax.set_title('3D surface with 2D contour plot projections')
+ax.set_xlabel('k')
+ax.set_xlim(min_neighbors, max_neighbors)
+ax.set_ylabel('d')
+ax.set_ylim(min_dim, max_dim)
+ax.set_zlabel('Avg. accuracy')
+ax.set_zlim(np.min(accuracy_matrix) - 15, np.max(accuracy_matrix))
 
 plt.show()
+print(best_conf)
 
 print("Accuracy of K-Fold non-embedded classification: %0.3f +- %0.2f" % (
     no_manifold_accuracy, no_manifold_se))
