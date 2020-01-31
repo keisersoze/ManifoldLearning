@@ -11,8 +11,10 @@ from scipy import stats
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import axes3d, Axes3D
 
-#X, y = load_shock_dataset()
-X, y = load_ppi_dataset()
+
+
+X, y = load_shock_dataset()
+#X, y = load_ppi_dataset()
 
 # Shuffle data
 idx = np.random.RandomState(seed=42).permutation(len(X))
@@ -21,6 +23,14 @@ X, y = X[idx], y[idx]
 # initialize scores lists
 
 def spk_isomap(X,y, k, KNNstart, KNNend, Dstart, Dend, svmC):
+
+    filename = "accuracy.txt"
+
+    myfile = open(filename, 'a')
+
+    # Add info to file
+    myfile.write('SP Isomap accuracy: K = %d-%d, D = %d-%d, C = %d, K-fold = %d\n'
+                 % (KNNstart, KNNend, Dstart, Dend, svmC, k))
 
     KNN = []
     KNNrange = KNNend - KNNstart+1
@@ -74,10 +84,13 @@ def spk_isomap(X,y, k, KNNstart, KNNend, Dstart, Dend, svmC):
                 # Append accuracy of classification.
                 scores.append(accuracy_score(y_test, y_pred))
 
-            Z[d][knn] = np.mean(scores)
-            print("value for d = ",d," and knn = ",knn,", is ", Z[d][knn])
+            val = np.mean(scores)
+            Z[d][knn] = val
+            myfile.write("%f " % (val))
+            print("knn = ", KNN[knn], "d = ", D[d], " accuracy = ", Z[d][knn])
             print("{0:.2%} done".format((Drange*knn+d+1.0)/(Drange*KNNrange)))
             # print("{0:.2%} done".format((D*k+d + 1.0)/(D*KNN) ))
-    for z in Z:
-        print(z)
+        myfile.write("\n")
+    # Close the file
+    myfile.close()
     return Z

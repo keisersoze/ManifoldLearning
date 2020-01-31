@@ -6,16 +6,19 @@ from Z_points_generator import spk_isomap
 from datasets_utils import load_shock_dataset
 from datasets_utils import load_ppi_dataset
 
+# Parameters
 #KNN
-min_x = 25
-max_x = 45
+min_x = 5
+max_x = 50
 #D
-min_y = 30
+min_y = 5
 max_y = 50
 #K-fold
 k_fold = 10
 
 svmC = 100
+
+#Data selection
 X, y = load_shock_dataset()
 #X, y = load_ppi_dataset()
 
